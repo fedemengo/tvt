@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+const delay = 3
+
 // ShowInfo contains the metada of each show
 type ShowInfo struct {
 	SortDate   string `json:"sort_date"`

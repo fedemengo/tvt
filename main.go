@@ -3,10 +3,25 @@ package main
 import (
 	"fmt"
 	"os"
+
+	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
-// INFO represent the info I'll use to reserve the tickets
-var INFO = TicketData{1, "F", "M", 1111111111, "fm@fm.io"}
+var (
+	app = kingpin.New("tvt", "Reserve ticket for www.tvtickets.com")
+
+	ls = app.Command("ls", "List all available tv shows")
+	rs = app.Command("rs", "Reserve ticket")
+
+	showName = rs.Arg("show", "TV show name").String()
+	first    = rs.Arg("first", "First name").String()
+	last     = rs.Arg("last", "Last name").String()
+	number   = rs.Arg("number", "Number of tickets to reserve").Int()
+	phone    = rs.Arg("phone", "Phone number").Int()
+	email    = rs.Arg("email", "Email address").String()
+	config   = rs.Arg("config", "Configuration file").String()
+	force    = rs.Flag("force", "Force reserving/creating a ticket").Bool()
+)
 
 func main() {
 
@@ -22,9 +37,8 @@ func main() {
 			fmt.Println("\t\"" + s + "\"")
 		}
 	case "rs":
-		showName := getShowName()
-		if ReserveTicket(showName, INFO, forced()) {
-			fmt.Println("Successfully reserved", INFO.Number, "ticket/s for", showName)
+		if ReserveTicket(*showName, TicketData{*number, *first, *last, *phone, *email}, *force) {
+			fmt.Println("Successfully reserved", *number, "ticket/s for", *showName)
 		} else {
 			fmt.Println("Couldn't reserve ticket/s")
 		}
@@ -36,26 +50,10 @@ func main() {
 
 }
 
-func getShowName() string {
-	name := os.Getenv("TVT_SHOW")
-	if len(name) == 0 {
-		panic("Show name is not set")
-	}
-
-	return name
-}
-
-func forced() bool {
-	forced := os.Getenv("FORCE")
-	if forced == "true" {
-		return true
-	}
-	return false
-}
-
 func help() {
 	fmt.Println("tvt - Reserve ticket for www.tvtickets.com")
-	fmt.Println("Usage:\t tvt option")
+	fmt.Println()
+	fmt.Println("Usage:  \ttvt [options]")
 	fmt.Println()
 	fmt.Println("Options:\tls - List all available tv shows")
 	fmt.Println("        \trs - Reserve ticket")
