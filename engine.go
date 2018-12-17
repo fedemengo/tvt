@@ -114,7 +114,7 @@ func ReserveTicket(showName string, data TicketData, forced bool) (succeed bool)
 			if ticketIsValid(body) {
 				succeed = true
 				ticketName := showName + "-" + data.First + data.Last + strconv.Itoa(id)
-				ioutil.WriteFile("./"+ticketName+".html", body, 0644)
+				ioutil.WriteFile("./t"+ticketName+".html", body, 0644)
 			}
 		}
 	}
