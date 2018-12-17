@@ -46,22 +46,6 @@ func GetAvailableShows() []ShowInfo {
 		panic("The HTTP request failed: cannot retrieve shows list")
 	}
 
-	//cookies := res.Cookies()
-	//fmt.Println("Cookies")
-	//for _, cookie := range cookies {
-	//	fmt.Println("\t", cookie.Name, "=", cookie.Value)
-	//}
-	//fmt.Println()
-
-	//header := res.Header
-	//fmt.Println("Header")
-	//for k := range header {
-	//	for v := range header[k] {
-	//		fmt.Println("\t", k, ":", v)
-	//	}
-	//}
-	//fmt.Println()
-
 	var shows []ShowInfo
 	data, err := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
@@ -123,5 +107,7 @@ func ReserveTicket(showName string, data TicketData, forced bool) (succeed bool)
 }
 
 func ticketIsValid(body []byte) bool {
-	return true
+	html := string(body)
+	text := strings.TrimSpace(html[strings.Index(html, "<title>")+len("<title>") : strings.Index(html, "</title>")])
+	return text == "Confirmation"
 }
