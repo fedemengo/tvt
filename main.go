@@ -8,12 +8,14 @@ import (
 )
 
 var (
-	app = kingpin.New("tvt", "Reserve ticket for www.tvtickets.com")
+	app = kingpin.New("tvt", "tvt - Reserve ticket for www.tvtickets.com")
 
 	ls = app.Command("ls", "List all available tv shows")
 	rs = app.Command("rs", "Reserve ticket")
 
-	force    = rs.Flag("force", "Force reserving/creating a ticket").Bool()
+	force   = app.Flag("force", "Force reserving/creating a ticket").Short('f').Bool()
+	verbose = app.Flag("verbose", "Verbose output of what is happening").Short('v').Bool()
+
 	showName = rs.Arg("show", "TV show name").String()
 	first    = rs.Arg("first", "First name").String()
 	last     = rs.Arg("last", "Last name").String()
@@ -27,33 +29,20 @@ func main() {
 
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 	case ls.FullCommand():
-		shows := GetAvailableShows()
+		shows := GetAvailableShows(*force)
 		fmt.Println("Available shows")
 		for _, s := range clear(shows) {
-			fmt.Println("\t\"" + s + "\"")
+			fmt.Println(" - \"" + s + "\"")
 		}
 	case rs.FullCommand():
-		if ReserveTicket(*showName, TicketData{*number, *first, *last, *phone, *email}, *force) {
+		if ReserveTicket(*showName, TicketData{*number, *first, *last, *phone, *email}, *force, *verbose) {
 			fmt.Println("Successfully reserved", *number, "ticket/s for", *showName)
 		} else {
 			fmt.Println("Couldn't reserve ticket/s")
 		}
-	default:
-		help()
 	}
 
 	return
-
-}
-
-func help() {
-	fmt.Println("tvt - Reserve ticket for www.tvtickets.com")
-	fmt.Println()
-	fmt.Println("Usage:  \ttvt [options]")
-	fmt.Println()
-	fmt.Println("Options:\tls - List all available tv shows")
-	fmt.Println("        \trs - Reserve ticket")
-	fmt.Println()
 }
 
 func clear(shows []ShowInfo) []string {
