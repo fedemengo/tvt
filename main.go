@@ -16,26 +16,31 @@ var (
 	force   = app.Flag("force", "Force reserving/creating a ticket").Short('f').Bool()
 	verbose = app.Flag("verbose", "Verbose output of what is happening").Short('v').Bool()
 
-	showName = rs.Arg("show", "TV show name").String()
-	first    = rs.Arg("first", "First name").String()
-	last     = rs.Arg("last", "Last name").String()
-	number   = rs.Arg("number", "Number of tickets to reserve").Int()
-	phone    = rs.Arg("phone", "Phone number").Int()
-	email    = rs.Arg("email", "Email address").String()
-	config   = rs.Arg("config", "Configuration file").String()
+	showName = rs.Flag("show", "TV show name").String()
+	first    = rs.Flag("first", "First name").String()
+	last     = rs.Flag("last", "Last name").String()
+	number   = rs.Flag("number", "Number of tickets to reserve").Short('n').String()
+	phone    = rs.Flag("phone", "Phone number").Short('p').String()
+	email    = rs.Flag("email", "Email address").Short('e').String()
+	config   = rs.Flag("config", "Configuration file").Short('c').String()
 )
 
 func main() {
 
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 	case ls.FullCommand():
+
 		shows := GetAvailableShows(*force)
 		fmt.Println("Available shows")
 		for _, s := range clear(shows) {
 			fmt.Println(" - \"" + s + "\"")
 		}
 	case rs.FullCommand():
-		if ReserveTicket(*showName, TicketData{*number, *first, *last, *phone, *email}, *force, *verbose) {
+
+		data := TicketData{*number, *first, *last, *phone, *email}
+		if commandLineValid(*showName, data) == false && len(*config) == 0 {
+			fmt.Println("Couldn't get required information from command line argument or file")
+		} else if ReserveTicket(*showName, data, *force, *verbose, *config) {
 			fmt.Println("Successfully reserved", *number, "ticket/s for", *showName)
 		} else {
 			fmt.Println("Couldn't reserve ticket/s")

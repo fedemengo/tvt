@@ -25,13 +25,18 @@ type ShowInfo struct {
 	ID         string `json:"rID"`
 }
 
+type showFileInfo struct {
+	ShowName string       `json:"Show"`
+	Data     []TicketData `json:"Data"`
+}
+
 // TicketData contains the necessary data to reserve a ticket
 type TicketData struct {
-	Number int
-	First  string
-	Last   string
-	Phone  int
-	Email  string
+	Number string `json:"Number"`
+	First  string `json:"First"`
+	Last   string `json:"Last"`
+	Phone  string `json:"Phone"`
+	Email  string `json:"Email"`
 }
 
 // listURL is the endpoint for the list of shows
@@ -70,43 +75,103 @@ func GetAvailableShows(forced bool) []ShowInfo {
 	return shows
 }
 
+func readFile(configFile string) (bool, map[string][]TicketData) {
+	if len(configFile) == 0 {
+		return false, nil
+	}
+
+	data, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		panic("Couldn't open file")
+	}
+
+	var showData []showFileInfo
+	err = json.Unmarshal(data, &showData)
+	if err != nil {
+		panic("Parsing error: cannot create JSON from data")
+	}
+
+	result := make(map[string][]TicketData)
+	for _, e := range showData {
+		result[e.ShowName] = e.Data
+	}
+
+	return true, result
+}
+
+func commandLineValid(show string, data TicketData) bool {
+	return len(show) != 0 && len(data.Number) != 0 && len(data.First) != 0 && len(data.Last) != 0 && len(data.Phone) != 0 && len(data.Email) != 0
+}
+
+func sendRequest(id int, showName string, values url.Values) bool {
+
+	values.Set("FindUs", "...")
+	values.Set("-ne:", "Submit")
+
+	// Send request with form data
+	res, err := http.PostForm(reserveURL, values)
+	if err != nil {
+		panic("The HTTP request failed: cannot request ticket")
+	}
+
+	// If successfully reserved ticket, store it as plain html file
+	body, _ := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	if ticketIsValid(body) {
+		ticketName := showName + "-" + values.Get("First") + values.Get("Last") + strconv.Itoa(id)
+		ioutil.WriteFile("./t"+ticketName+".html", body, 0644)
+		return true
+	}
+
+	return false
+}
+
 // ReserveTicket attempts to reserve a ticket, and return true in case of success
-func ReserveTicket(showName string, data TicketData, forced, verbose bool) (succeed bool) {
+func ReserveTicket(showName string, data TicketData, forced, verbose bool, configFile string) (succeed bool) {
+
+	file, fileData := readFile(configFile)
+	cli := commandLineValid(showName, data)
 
 	succeed = false
 	for succeed == false {
 		shows := GetAvailableShows(forced)
 		for id, s := range shows {
-			// If the current show is the correct show AND the show is not soldout OR forced is set to true, attempt to reserve ticket
-			if strings.Index(s.ShowName, showName) != -1 {
+			// Attempt to reserve ticket with options from file
+			if entry, ok := fileData[s.ShowName]; file && ok {
+				for iid, e := range entry {
+					formValues := url.Values{
+						"ShowDateTime": {s.ID},
+						"Number":       {e.Number},
+						"First":        {e.First},
+						"Last":         {e.Last},
+						"Phone":        {e.Phone},
+						"Email":        {e.Email},
+					}
+
+					if sendRequest(id*10+iid, s.ShowName, formValues) {
+						succeed = true
+					}
+				}
+			}
+
+			// Attempt to reserve ticket with options from command line
+			if cli && strings.Index(s.ShowName, showName) != -1 {
 				// Create form values for requesting the ticket
 				formValues := url.Values{
 					"ShowDateTime": {s.ID},
-					"Number":       {strconv.Itoa(data.Number)},
+					"Number":       {data.Number},
 					"First":        {data.First},
 					"Last":         {data.Last},
-					"Phone":        {strconv.Itoa(data.Phone)},
+					"Phone":        {data.Phone},
 					"Email":        {data.Email},
-					"FindUs":       {"..."},
-					"-ne:":         {"Submit"},
 				}
 
-				// Send request with form data
-				res, err := http.PostForm(reserveURL, formValues)
-				if err != nil {
-					panic("The HTTP request failed: cannot request ticket")
-				}
-
-				// If successfully reserved ticket, store it as plain html file
-				body, _ := ioutil.ReadAll(res.Body)
-				defer res.Body.Close()
-				if ticketIsValid(body) {
+				if sendRequest(id, s.ShowName, formValues) {
 					succeed = true
-					ticketName := showName + "-" + data.First + data.Last + strconv.Itoa(id)
-					ioutil.WriteFile("./t"+ticketName+".html", body, 0644)
 				}
 			}
 		}
+
 		if succeed == false && verbose {
 			fmt.Println("Couldn't reserve ticket. Retring in", timeOut, "second.")
 		}
