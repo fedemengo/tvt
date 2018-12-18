@@ -11,18 +11,18 @@ var (
 	app = kingpin.New("tvt", "tvt - Reserve ticket for www.tvtickets.com")
 
 	ls = app.Command("ls", "List all available tv shows")
-	rs = app.Command("rs", "Reserve ticket")
+	rs = app.Command("rs", "Reserve tickets for shows")
 
 	force   = app.Flag("force", "Force reserving/creating a ticket").Short('f').Bool()
 	verbose = app.Flag("verbose", "Verbose output of what is happening").Short('v').Bool()
 
-	showName = rs.Flag("show", "TV show name").String()
-	first    = rs.Flag("first", "First name").String()
-	last     = rs.Flag("last", "Last name").String()
-	number   = rs.Flag("number", "Number of tickets to reserve").Short('n').String()
-	phone    = rs.Flag("phone", "Phone number").Short('p').String()
-	email    = rs.Flag("email", "Email address").Short('e').String()
-	config   = rs.Flag("config", "Configuration file").Short('c').String()
+	show   = rs.Flag("show", "TV show name").String()
+	first  = rs.Flag("first", "First name").String()
+	last   = rs.Flag("last", "Last name").String()
+	number = rs.Flag("number", "Number of tickets to reserve").Short('n').String()
+	phone  = rs.Flag("phone", "Phone number").Short('p').String()
+	email  = rs.Flag("email", "Email address").Short('e').String()
+	config = rs.Flag("config", "Configuration file").Short('c').String()
 )
 
 func main() {
@@ -38,9 +38,9 @@ func main() {
 	case rs.FullCommand():
 
 		data := TicketData{*number, *first, *last, *phone, *email}
-		if commandLineValid(*showName, data) == false && len(*config) == 0 {
+		if !cliIsValid(*show, data) && len(*config) == 0 {
 			fmt.Println("Couldn't get required information from command line argument or file")
-		} else if ok, n, show := ReserveTicket(*showName, data, *force, *verbose, *config); ok {
+		} else if ok, n, show := ReserveTicket(*show, data, *force, *verbose, *config); ok {
 			fmt.Println("Successfully reserved", n, "ticket/s for", show)
 		} else {
 			fmt.Println("Couldn't reserve ticket/s")
