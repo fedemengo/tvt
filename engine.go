@@ -127,12 +127,14 @@ func sendRequest(id int, showName string, values url.Values) bool {
 }
 
 // ReserveTicket attempts to reserve a ticket, and return true in case of success
-func ReserveTicket(showName string, data TicketData, forced, verbose bool, configFile string) (succeed bool) {
+func ReserveTicket(showName string, data TicketData, forced, verbose bool, configFile string) (bool, int, []string) {
 
 	file, fileData := readFile(configFile)
 	cli := commandLineValid(showName, data)
 
-	succeed = false
+	succeed := false
+	nTickets := 0
+	nShows := make([]string, 0)
 	for succeed == false {
 		shows := GetAvailableShows(forced)
 		for id, s := range shows {
@@ -150,6 +152,8 @@ func ReserveTicket(showName string, data TicketData, forced, verbose bool, confi
 
 					if sendRequest(id*10+iid, s.ShowName, formValues) {
 						succeed = true
+						nTickets++
+						nShows = append(nShows, s.ShowName)
 					}
 				}
 			}
@@ -168,6 +172,8 @@ func ReserveTicket(showName string, data TicketData, forced, verbose bool, confi
 
 				if sendRequest(id, s.ShowName, formValues) {
 					succeed = true
+					nTickets++
+					nShows = append(nShows, s.ShowName)
 				}
 			}
 		}
@@ -178,7 +184,7 @@ func ReserveTicket(showName string, data TicketData, forced, verbose bool, confi
 		time.Sleep(timeOut * time.Second)
 	}
 
-	return
+	return succeed, nTickets, nShows
 }
 
 func ticketIsValid(body []byte) bool {

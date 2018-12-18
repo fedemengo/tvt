@@ -40,8 +40,8 @@ func main() {
 		data := TicketData{*number, *first, *last, *phone, *email}
 		if commandLineValid(*showName, data) == false && len(*config) == 0 {
 			fmt.Println("Couldn't get required information from command line argument or file")
-		} else if ReserveTicket(*showName, data, *force, *verbose, *config) {
-			fmt.Println("Successfully reserved", *number, "ticket/s for", *showName)
+		} else if ok, n, show := ReserveTicket(*showName, data, *force, *verbose, *config); ok {
+			fmt.Println("Successfully reserved", n, "ticket/s for", show)
 		} else {
 			fmt.Println("Couldn't reserve ticket/s")
 		}
